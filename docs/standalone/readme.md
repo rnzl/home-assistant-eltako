@@ -304,7 +304,7 @@ There is no hot reload - Python imports a module once.
 ## Tests
 
 ```bash
-python -m pytest eltako_standalone/tests    # own process, the shim must win
-python -m pytest tests                      # tests of the integration, unchanged
+python -m tests.run_offline pytest eltako_standalone/tests -q  # separate process
+python -m tests.run_offline unittest discover tests -v
 python -m eltako_standalone test --list     # run the suites from the CLI (or the web ui)
 ```

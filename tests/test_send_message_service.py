@@ -1,14 +1,10 @@
 import unittest
 from tests.mocks import EventMock, GatewayMock
-from unittest import mock
-from homeassistant.helpers import dispatcher
 import inspect
 import os
 
 from tests.test_metadata import MetadataTest
 from eltakobus.eep import EEP
-
-dispatcher.dispatcher_send = mock.Mock(return_value=None)
 
 class TestSendMessageService(unittest.IsolatedAsyncioTestCase):
 

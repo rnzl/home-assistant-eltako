@@ -1213,9 +1213,8 @@ export const page = {
     if (!running) return;
 
     this._scanTimer = setTimeout(async () => {
-      // the view select of this toolbar is gone as soon as another page is open ('filter'
-      // would not do - three pages have a filter input of that id)
-      if (!ctx.root || !ctx.root.getElementById("device-view")) return;
+      // This toolbar control is unique to the devices page.
+      if (!ctx.root || !ctx.root.getElementById("only-silent")) return;
       const bus = await ctx.api.call(WS.BUS_MEMBERS);
       if (!bus) {
         this._pollBusScans(ctx);        // the request failed - keep watching

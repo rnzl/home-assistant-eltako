@@ -17,3 +17,11 @@ def test_entity_id_validator_rejects_invalid_entity_id(value):
 
     with pytest.raises(vol.Invalid):
         cv.entity_id(value)
+
+
+def test_cover_device_class_validation():
+    from homeassistant.components.cover import DEVICE_CLASSES_SCHEMA
+
+    assert DEVICE_CLASSES_SCHEMA("SHUTTER") == "shutter"
+    with pytest.raises(vol.Invalid):
+        DEVICE_CLASSES_SCHEMA("not-a-cover")

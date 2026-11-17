@@ -19,7 +19,7 @@ eltako_standalone/
 ├── server.py                  aiohttp web server: web ui + websocket endpoint
 ├── shell/                     browser bootstrap that loads the unchanged web ui
 ├── cli.py                     command line interface
-└── tests/                     run with:  pytest eltako_standalone/tests
+└── tests/                     run with:  python -m tests.run_offline pytest eltako_standalone/tests
 ```
 
 ## Install
@@ -257,9 +257,13 @@ fine - the shim wins via `sys.path`).
 ## Tests
 
 ```bash
-pytest eltako_standalone/tests     # must run in its own pytest process
-pytest tests                       # the tests of the integration, unchanged
+python -m tests.run_offline pytest eltako_standalone/tests -q
+python -m tests.run_offline unittest discover tests -v
 ```
+
+Run these in separate processes from a POSIX source checkout. The offline runner is a test
+guard, not a security sandbox; use only simulated or fake gateway configurations. The UI/CLI
+test launcher and direct pytest/unittest commands do not install this guard.
 
 ## How it works / limits
 

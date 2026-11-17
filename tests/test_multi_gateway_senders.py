@@ -24,7 +24,13 @@ from eltakobus.util import AddressExpression, b2s
 from homeassistant.const import CONF_DEVICES, CONF_ID, Platform
 from homeassistant.helpers.entity import Entity
 
-Entity.schedule_update_ha_state = mock.Mock(return_value=None)
+_entity_update_patch = mock.patch.object(Entity, "schedule_update_ha_state", return_value=None)
+
+def setUpModule():
+    _entity_update_patch.start()
+
+def tearDownModule():
+    _entity_update_patch.stop()
 
 
 def wireless_config(second_sender: dict | None = None) -> dict:

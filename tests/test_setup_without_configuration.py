@@ -272,7 +272,9 @@ class TestTheShortestYamlIsOneLine(TestCase):
     def test_an_empty_section_is_accepted(self):
         from custom_components.eltako.config.schema import CONFIG_SCHEMA
 
-        self.assertEqual({'eltako': {}}, CONFIG_SCHEMA({'eltako': None}))
+        config = CONFIG_SCHEMA({'eltako': None})
+        self.assertEqual({'unknown': []}, config['eltako'])
+        self.assertEqual('', config['description'])
 
     def test_it_reads_as_a_configuration_without_gateways(self):
         from custom_components.eltako.config import config_helpers

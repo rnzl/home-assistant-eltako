@@ -266,6 +266,6 @@ the container depends on changes (the gateway naming scheme, the telegram record
 compose structure) instead of letting the container break silently.
 
 ```bash
-python -m pytest tests                     # tests of the integration
-python -m pytest eltako_standalone/tests   # tests of the standalone runtime
+python -m tests.run_offline unittest discover tests -v
+python -m tests.run_offline pytest eltako_standalone/tests -q
 ```

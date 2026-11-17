@@ -10,7 +10,13 @@ from custom_components.eltako.config import config_helpers
 from homeassistant import core
 
 # mock update of Home Assistant
-Entity.schedule_update_ha_state = mock.Mock(return_value=None)
+_entity_update_patch = mock.patch.object(Entity, "schedule_update_ha_state", return_value=None)
+
+def setUpModule():
+    _entity_update_patch.start()
+
+def tearDownModule():
+    _entity_update_patch.stop()
 # EltakoEntity.send_message = mock.Mock(return_value=None)
 
 class TestEntityProperties(unittest.TestCase):
@@ -57,7 +63,9 @@ class TestEntityProperties(unittest.TestCase):
         ee = EltakoEntity(Platform.BINARY_SENSOR, gw, address, "Switch", F6_02_01)
 
         self.assertIsNone(ee._attr_dev_area)
-        self.assertIsNone(ee.device_info["suggested_area"])
+        with mock.patch('custom_components.eltako.core.entity.dr.async_get',
+                        return_value=mock.Mock()):
+            self.assertIsNone(ee.device_info["suggested_area"])
 
     def test_entity_area_set(self):
         """When an area is provided, it is exposed via device_info.suggested_area."""
@@ -67,4 +75,6 @@ class TestEntityProperties(unittest.TestCase):
         ee = EltakoEntity(Platform.BINARY_SENSOR, gw, address, "Switch", F6_02_01, dev_area="Living Room")
 
         self.assertEqual(ee._attr_dev_area, "Living Room")
-        self.assertEqual(ee.device_info["suggested_area"], "Living Room")
+        with mock.patch('custom_components.eltako.core.entity.dr.async_get',
+                        return_value=mock.Mock()):
+            self.assertEqual(ee.device_info["suggested_area"], "Living Room")

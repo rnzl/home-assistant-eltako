@@ -591,8 +591,15 @@ give quick feedback. They live in [`tests/`](tests),
 and a vscode `settings.json` to run them from the ide is prepared:
 
 ```
-python -m unittest discover tests -v
+python -m tests.run_offline unittest discover tests -v
+python -m tests.run_offline pytest eltako_standalone/tests -q
 ```
+
+On POSIX systems, the commands run the integration and standalone suites in separate processes. The test runner
+blocks device opens and non-loopback connections in the Python process and uses fake discovery;
+it is not a security sandbox and does not protect subprocesses. Never use real gateway
+configuration for automated tests. Node.js is required for the frontend tests. The standalone
+UI/CLI test launcher and direct pytest/unittest commands do not install this guard.
 
 The lists of supported devices and EEPs above are **not written by hand** &ndash; they are rendered from the
 device catalog, the platform schemas and the profile registry of `eltakobus`, the same source the *Help*

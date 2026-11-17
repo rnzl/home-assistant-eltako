@@ -11,7 +11,13 @@ from custom_components.eltako.const import CONF_FAST_STATUS_CHANGE
 
 
 # mock update of Home Assistant
-Entity.schedule_update_ha_state = mock.Mock(return_value=None)
+_entity_update_patch = mock.patch.object(Entity, "schedule_update_ha_state", return_value=None)
+
+def setUpModule():
+    _entity_update_patch.start()
+
+def tearDownModule():
+    _entity_update_patch.stop()
 # EltakoEntity.send_message = mock.Mock(return_value=None)
 
 class TestDimmableLight(unittest.TestCase):
