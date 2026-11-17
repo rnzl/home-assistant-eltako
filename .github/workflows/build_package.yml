@@ -1,8 +1,8 @@
 # Builds the pip package of the standalone runtime (`pip install eltako-enocean-tool`).
 #
 #   build         sdist + wheel from pyproject.toml, metadata checked with twine
-#   smoke-test    installs the built wheel in a clean environment on linux/windows/macos
-#                 and actually boots the runtime with the bundled demo data
+#   smoke-test    installs the built wheel on linux/windows, and on macos for manual
+#                 runs and releases, then boots the runtime with the bundled demo data
 #   publish       uploads to PyPI - only when a GitHub release is published, or manually
 #                 (workflow_dispatch) to TestPyPI for a dry run
 #
@@ -90,15 +90,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        # macOS hosted runners can have long queues. Keep the release gate, but make
+        # the check opt-in for normal development via workflow_dispatch.
+        os: ${{ fromJSON((github.event_name == 'release' || github.event_name == 'workflow_dispatch') && '["ubuntu-latest","windows-latest","macos-latest"]' || '["ubuntu-latest","windows-latest"]') }}
+        python-version: ['3.14']
         include:
-          # the lower bound of requires-python and the version Home Assistant uses
+          # also cover the lower bound of requires-python
           - { os: ubuntu-latest, python-version: '3.12' }
           - { os: ubuntu-latest, python-version: '3.13' }
-          - { os: ubuntu-latest, python-version: '3.14' }
-          # the two platforms where the standalone runtime is the *only* way to reach a
-          # usb gateway natively - a broken package there is a broken feature
-          - { os: windows-latest, python-version: '3.14' }
-          - { os: macos-latest, python-version: '3.14' }
     defaults:
       run:
         shell: bash        # also on windows, so one script fits all three platforms

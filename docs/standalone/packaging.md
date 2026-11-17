@@ -111,13 +111,16 @@ on a release which is marked as one (nobody but a beta tester would ever see it)
 | job | when | what |
 | --- | --- | --- |
 | `build` | every push, pull request | version check, `python -m build`, `twine check --strict`, upload of `dist/` as a build artifact |
-| `smoke-test` | after `build` | installs the built **wheel** in a clean environment on linux (3.12, 3.13, 3.14), windows and macos, then `eet --help`, the import of shim + integration, the presence of the web ui files, and a real boot: `eet --demo devices` with the bundled demo data |
+| `smoke-test` | after `build` | installs the built **wheel** on linux (3.12, 3.13, 3.14) and windows; macos also runs for manual workflows and releases. Checks include imports, bundled files, demo boot and a simulated CLI command |
 | `publish` | a published GitHub release, or manually | upload to PyPI (or to TestPyPI for a dry run) |
 
 The smoke test deliberately does **not** check out the repository: it has to work from the
 wheel alone, exactly like on a machine which never saw this repository. It is also the reason
 windows and macos are in the matrix - there the standalone runtime is the only way to reach a
-USB gateway natively, so a package which is broken there is a broken feature.
+USB gateway natively, so a package which is broken there is a broken feature. To run the
+macOS check without publishing, choose *Actions → Build python package → Run workflow*,
+select the branch and leave `publish_to` set to `nowhere`. A published release or manual
+publish still requires the macOS smoke test to pass.
 
 ### Releasing
 
