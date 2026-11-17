@@ -51,6 +51,12 @@ def panel_of(hass):
     return hass.data[DATA_PANELS][PANEL_URL_PATH]
 
 
+def is_in_sidebar(panel):
+    if hasattr(panel, 'show_in_sidebar'):
+        return panel.show_in_sidebar
+    return panel.sidebar_title is not None
+
+
 class TestTheSidebarEntryCanBeSwitched(TestCase):
 
     def test_it_is_shown_by_default(self):
@@ -65,7 +71,7 @@ class TestTheSidebarEntryCanBeSwitched(TestCase):
             hass, config_helpers.get_general_settings_from_configuration(hass))
 
         self.assertIn(PANEL_URL_PATH, hass.data[DATA_PANELS])
-        self.assertFalse(panel_of(hass).show_in_sidebar)
+        self.assertFalse(is_in_sidebar(panel_of(hass)))
 
     def test_showing_it_again_brings_it_back(self):
         hass = hass_with_panel(**{CONF_SHOW_PANEL_IN_SIDEBAR: False})
@@ -74,7 +80,7 @@ class TestTheSidebarEntryCanBeSwitched(TestCase):
 
         integration.async_apply_panel_visibility(hass, {**settings, CONF_SHOW_PANEL_IN_SIDEBAR: True})
 
-        self.assertTrue(panel_of(hass).show_in_sidebar)
+        self.assertTrue(is_in_sidebar(panel_of(hass)))
         self.assertEqual(PANEL_TITLE, panel_of(hass).sidebar_title)
 
     def test_it_stays_the_same_panel(self):
@@ -101,7 +107,7 @@ class TestTheSidebarEntryCanBeSwitched(TestCase):
         integration.async_apply_panel_visibility(
             hass, config_helpers.get_general_settings_from_configuration(hass))
 
-        self.assertTrue(panel_of(hass).show_in_sidebar)
+        self.assertTrue(is_in_sidebar(panel_of(hass)))
 
 
 class TestThePanelGoesWithTheLastEntry(TestCase):
@@ -154,7 +160,7 @@ class TestThePanelGoesWithTheLastEntry(TestCase):
             hass, config_helpers.get_general_settings_from_configuration(hass)))
 
         self.assertIn(PANEL_URL_PATH, hass.data[DATA_PANELS])
-        self.assertTrue(panel_of(hass).show_in_sidebar)
+        self.assertTrue(is_in_sidebar(panel_of(hass)))
 
     def test_a_switched_off_web_ui_gets_no_panel(self):
         """Without the frontend nothing serves the panel module - a panel registered anyway

@@ -125,10 +125,26 @@ const devicesCtx = {
 const devicesHtml = devices.render(devicesCtx);
 const devicesRows = rowsOf(devicesHtml);
 
+let timerCallback;
+const originalSetTimeout = globalThis.setTimeout;
+globalThis.setTimeout = (callback) => { timerCallback = callback; return 0; };
+let pollCalls = 0;
+const pollCtx = {
+  ...devicesCtx,
+  root: parseHtml(devices.renderToolbar(devicesCtx)),
+  api: { call: async () => { pollCalls++; return null; } },
+};
+devices._pollBusScans(pollCtx);
+await timerCallback();
+pollCtx.root = parseHtml('<div></div>');
+await timerCallback();
+devices.leave();
+globalThis.setTimeout = originalSetTimeout;
+
 console.log(JSON.stringify({
   component, empty, withoutNames, patched, afterPatch, stale,
   overviewRows, homeRows, homeHtml, devicesRows,
-  devicesHasLeave: typeof devices.leave === 'function',
+  devicesHasLeave: typeof devices.leave === 'function', pollCalls,
 }, null, 1));
 """
 
@@ -207,6 +223,9 @@ class TestParallelBusScansAreListed(unittest.TestCase):
 
     def test_the_device_page_stops_its_poll_when_it_is_left(self):
         self.assertTrue(self.result['devicesHasLeave'])
+
+    def test_device_page_poll_requests_bus_updates(self):
+        self.assertEqual(1, self.result['pollCalls'])
 
 
 if __name__ == '__main__':

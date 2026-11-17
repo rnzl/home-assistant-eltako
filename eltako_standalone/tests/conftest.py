@@ -2,15 +2,16 @@
 
 IMPORTANT: these tests must run in their own pytest process:
 
-    pytest eltako_standalone/tests
+    python -m tests.run_offline pytest eltako_standalone/tests
 
 They activate the homeassistant shim via sys.path. If the real homeassistant
 package was already imported (e.g. because the tests of the integration ran in
-the same process), the whole suite is skipped.
+the same process), the suite fails rather than silently skipping it.
 """
 
 import os
 import sys
+from unittest import mock
 
 import pytest
 
@@ -20,11 +21,42 @@ if REPO_ROOT not in sys.path:
 
 from eltako_standalone.runtime import install_shim  # noqa: E402
 
-try:
-    install_shim()
-except RuntimeError:
-    pytest.skip("real homeassistant already imported - run these tests in their own "
-                "pytest process: pytest eltako_standalone/tests", allow_module_level=True)
+install_shim()
+
+
+def pytest_sessionfinish(session, exitstatus):
+    reporter = session.config.pluginmanager.get_plugin("terminalreporter")
+    if exitstatus == pytest.ExitCode.OK and reporter and not reporter.stats.get("passed"):
+        reporter.write_line("ERROR: standalone suite had no passing tests")
+        session.exitstatus = pytest.ExitCode.TESTS_FAILED
+
+
+@pytest.fixture(autouse=True)
+def isolate_discovery(monkeypatch):
+    """Standalone tests use fake discovery; never inspect the host's gateways."""
+    from custom_components.eltako.tools import gateway_scan, plug_and_play
+
+    async def no_mdns(_hass):
+        return []
+
+    monkeypatch.setattr(gateway_scan, "scan",
+                        lambda _hass: {"ports": [], "gateways_without_port": []})
+    monkeypatch.setattr(plug_and_play, "async_discover_mdns_gateways", no_mdns)
+    monkeypatch.setattr(plug_and_play, "_bus_was_read", lambda *_args: True)
+
+
+@pytest.fixture(autouse=True)
+def disconnected_gateway_transport(monkeypatch):
+    """Non-simulated fixture gateways have no physical transport."""
+    from custom_components.eltako.core.gateway import EnOceanGateway
+
+    def init_bus(gateway):
+        gateway._received_message_count = 0
+        gateway._bus = mock.Mock()
+        gateway._bus.is_active.return_value = False
+        gateway._bus.is_alive.return_value = False
+
+    monkeypatch.setattr(EnOceanGateway, "_init_bus", init_bus)
 
 
 CONFIG_YAML = """

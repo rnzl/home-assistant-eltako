@@ -466,8 +466,8 @@ also why the two test suites **must not run in one pytest process**: the shim re
 `homeassistant` package and poisons the other suite's imports.
 
 ```bash
-python -m pytest tests/                    # integration
-python -m pytest eltako_standalone/tests   # standalone
+python -m tests.run_offline unittest discover tests -v
+python -m tests.run_offline pytest eltako_standalone/tests -q
 ```
 
 ---

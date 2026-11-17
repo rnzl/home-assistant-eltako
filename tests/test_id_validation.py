@@ -19,7 +19,13 @@ from eltakobus import AddressExpression, b2s
 from eltakobus.eep import EEP
 
 # mock update of Home Assistant
-Entity.schedule_update_ha_state = mock.Mock(return_value=None)
+_entity_update_patch = mock.patch.object(Entity, "schedule_update_ha_state", return_value=None)
+
+def setUpModule():
+    _entity_update_patch.start()
+
+def tearDownModule():
+    _entity_update_patch.stop()
 
 
 class TestActuatorIdValidation(unittest.TestCase):

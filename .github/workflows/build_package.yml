@@ -161,6 +161,21 @@ jobs:
           grep -q "^cover\." devices.txt
           test -f ./smoke-config/.storage/eltako_gateways
 
+      - name: Exercise simulated CLI
+        run: |
+          eet --config ./simulation-smoke simulate starter --gateways fam14
+          eet --config ./simulation-smoke simulate set --gateway 0 --address 00-00-00-05 --value temperature=22.5
+          eet --config ./simulation-smoke simulate list --json > simulation.json
+          python - <<'PY'
+          import json
+          with open("simulation.json", encoding="utf-8") as f:
+              overview = json.load(f)
+          gateway, = overview["gateways"]
+          assert gateway["simulated"] and gateway["device_type"] == "fam14"
+          device = next(d for d in gateway["devices"] if d["address"] == "00-00-00-05")
+          assert device["state"]["temperature"] == 22.5
+          PY
+
   # A package must not be published merely because it builds.  Run the same repository
   # gates used for changes on every release event and make publish depend on all of them.
   release-gate:
@@ -177,6 +192,11 @@ jobs:
         with:
           python-version: '3.14'
 
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Install test dependencies
         run: |
           python -m pip install --upgrade pip
@@ -186,7 +206,10 @@ jobs:
         run: ruff check custom_components tests
 
       - name: Run unit tests
-        run: python -m unittest discover tests -v
+        run: python -m tests.run_offline unittest discover tests -v
+
+      - name: Run standalone tests
+        run: python -m tests.run_offline pytest eltako_standalone/tests -q
 
       - name: Hassfest validation
         uses: home-assistant/actions/hassfest@master

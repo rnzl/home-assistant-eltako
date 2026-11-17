@@ -1,19 +1,11 @@
 from unittest import TestCase, mock
 from tests.mocks import DEFAULT_GENERAL_SETTINGS, HassMock
-from eltakobus import RS485SerialInterface
 from custom_components.eltako.core.gateway import (AddressExpression, ConfigEntry, DOMAIN, EnOceanGateway,
-                                                   GatewayDeviceType, asyncio, basename, normpath)
+                                                   GatewayDeviceType, basename, normpath)
 from custom_components.eltako.config import config_helpers
 import yaml
 from custom_components.eltako.const import BAUD_RATE_DEVICE_TYPE_MAPPING
 from homeassistant.const import CONF_ID
-
-# mock update of Home Assistant
-EnOceanGateway._register_device = mock.Mock(return_value=None)
-EnOceanGateway._init_bus = mock.Mock(return_value=None)
-EnOceanGateway.add_connection_state_changed_handler = mock.Mock(return_value=None)
-RS485SerialInterface.__init__ = mock.Mock(return_value=None)
-asyncio.get_event_loop = mock.Mock(return_value=None)
 
 class TestGateway(TestCase):
 
@@ -31,9 +23,12 @@ class TestGateway(TestCase):
         sub_type = GatewayDeviceType.GatewayEltakoFAM14
         baud_rate = BAUD_RATE_DEVICE_TYPE_MAPPING[sub_type]
         conf = ConfigEntry(version=1, minor_version=0, domain=DOMAIN, title="gateway", data={}, source=None, options=None, unique_id=None, discovery_keys = [], subentries_data = None)
-        gw = EnOceanGateway(DEFAULT_GENERAL_SETTINGS, HassMock(),
-                              dev_id=123, dev_type=sub_type, serial_path="serial_path",  baud_rate=baud_rate, port=None, base_id=AddressExpression.parse('FF-AA-00-00'), dev_name="GW", auto_reconnect=True,
-                              config_entry=conf)
+        with mock.patch.object(EnOceanGateway, '_init_bus'), \
+             mock.patch.object(EnOceanGateway, '_register_device'), \
+             mock.patch.object(EnOceanGateway, 'add_connection_state_changed_handler'):
+            gw = EnOceanGateway(DEFAULT_GENERAL_SETTINGS, HassMock(),
+                                  dev_id=123, dev_type=sub_type, serial_path="serial_path",  baud_rate=baud_rate, port=None, base_id=AddressExpression.parse('FF-AA-00-00'), dev_name="GW", auto_reconnect=True,
+                                  config_entry=conf)
 
         self.assertEqual(gw.identifier, basename(normpath('serial_path')))
         self.assertEqual(gw.general_settings, DEFAULT_GENERAL_SETTINGS)

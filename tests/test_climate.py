@@ -16,20 +16,19 @@ from custom_components.eltako.const import (CONF_COOLING_MODE, CONF_OFF_TEMPERAT
                                              CONF_SWITCH_BUTTON)
 from custom_components.eltako.config.schema import ClimateSchema
 
-# mock update of Home Assistant
-Entity.schedule_update_ha_state = mock.Mock(return_value=None)
-ClimateController.schedule_update_ha_state = mock.Mock(return_value=None)
-# EltakoBinarySensor.hass.bus.fire is mocked by class HassMock
-
-# send_message is mocked for this module only. A module-level class patch would leak into
-# every later test of the pytest process (e.g. the fanout tests of the real send_message).
-_original_send_message = EltakoEntity.send_message
+_patches = [
+    mock.patch.object(Entity, "schedule_update_ha_state", return_value=None),
+    mock.patch.object(ClimateController, "schedule_update_ha_state", return_value=None),
+    mock.patch.object(EltakoEntity, "send_message", return_value=None),
+]
 
 def setUpModule():
-    EltakoEntity.send_message = mock.Mock(return_value=None)
+    for patch in _patches:
+        patch.start()
 
 def tearDownModule():
-    EltakoEntity.send_message = _original_send_message
+    for patch in reversed(_patches):
+        patch.stop()
 
 class EventDataMock():
     def __init__(self,d):

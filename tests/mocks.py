@@ -74,17 +74,15 @@ class EventMock():
         self.data = data
 class GatewayMock(EnOceanGateway):
 
+    def _init_bus(self):
+        self._received_message_count = 0
+        self._bus = EltakoBusMock()
+
     def __init__(self, general_settings:dict=DEFAULT_GENERAL_SETTINGS, dev_id: int=123, base_id:AddressExpression=AddressExpression.parse('FF-AA-80-00')):
         hass = HassMock()
         gw_type = GatewayDeviceType.GatewayEltakoFAM14
 
         super().__init__(general_settings, hass, dev_id, gw_type, 'SERIAL_PATH', 56700, 5100, base_id, "MyFAM14", auto_reconnect=True, message_delay=0.01, config_entry=ConfigEntryMock())
-
-        self._bus = EltakoBusMock()
-
-        # test_gateway.py replaces EnOceanGateway._init_bus for the whole process, so the
-        # attributes which are normally initialized there have to be provided here.
-        self._received_message_count = 0
 
     def set_status_changed_handler(self):
         pass
