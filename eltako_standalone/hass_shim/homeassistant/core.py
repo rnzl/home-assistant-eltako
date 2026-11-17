@@ -161,9 +161,14 @@ class ServiceRegistry:
     def __init__(self, hass: "HomeAssistant"):
         self._hass = hass
         self._services: dict[tuple[str, str], Callable] = {}
+        self._schemas: dict[tuple[str, str], Callable] = {}
 
     def async_register(self, domain: str, service: str, service_func, schema=None) -> None:
         self._services[(domain, service)] = service_func
+        if schema is None:
+            self._schemas.pop((domain, service), None)
+        else:
+            self._schemas[(domain, service)] = schema
 
     def has_service(self, domain: str, service: str) -> bool:
         return (domain, service) in self._services
@@ -179,7 +184,11 @@ class ServiceRegistry:
         func = self._services.get((domain, service))
         if func is None:
             raise ValueError(f"Service {domain}.{service} not found")
-        call = ServiceCall(domain, service, dict(service_data or {}))
+        data = dict(service_data or {})
+        schema = self._schemas.get((domain, service))
+        if schema is not None:
+            data = schema(data)
+        call = ServiceCall(domain, service, data)
         result = func(call)
         if inspect.isawaitable(result):
             await result

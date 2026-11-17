@@ -1,7 +1,11 @@
 """Tests: booting the integration on the shim, entity creation, state flow."""
 
 import asyncio
+from pathlib import Path
 from unittest import mock
+
+import pytest
+import voluptuous as vol
 
 from eltako_standalone.runtime import EltakoRuntime
 
@@ -45,6 +49,80 @@ def test_boot_creates_entities(config_dir):
         assert light["eep"] == "M5-38-08"
         assert "turn_on" in light["actions"]
         await runtime.async_stop()
+    run(scenario())
+
+
+def test_cover_and_fan_platforms_update_states_and_invalidate_cover(config_dir):
+    config = Path(config_dir) / "configuration.yaml"
+    config.write_text(
+        config.read_text(encoding="utf-8").replace(
+            "    auto_reconnect: False",
+            "    auto_reconnect: False\n    simulated: True",
+        ) + """
+      cover:
+      - id: 00-00-00-02
+        eep: G5-3F-7F
+        name: Test Cover
+        device_class: shutter
+        sender: {id: 00-00-B0-02, eep: H5-3F-7F}
+      fan:
+      - id: 00-00-00-03
+        eep: A5-38-08
+        name: Test Fan
+        sender: {id: 00-00-B0-03, eep: A5-38-08}
+""",
+        encoding="utf-8",
+    )
+
+    async def scenario():
+        from eltakobus.eep import A5_38_08, CentralCommandDimming
+        from eltakobus.message import RPSMessage
+        from eltako_standalone.entity_api import get_entity
+
+        runtime = await _booted(config_dir)
+        try:
+            hass = runtime.hass
+            cover_id = "cover.eltako_gw_1_00_00_00_02"
+            fan_id = "fan.eltako_gw_1_00_00_00_03"
+            cover = get_entity(hass, cover_id)
+            fan = get_entity(hass, fan_id)
+            assert cover is not None
+            assert fan is not None
+            assert hass.states.get(cover_id).state == "unknown"
+            assert hass.states.get(fan_id).state == "off"
+
+            cover.value_changed(RPSMessage(b"\x00\x00\x00\x02", 0x30, b"\x01"))
+            fan.value_changed(A5_38_08(
+                command=2, dimming=CentralCommandDimming(63, 0, 1, 0, 0, 1)
+            ).encode_message(b"\x00\x00\x00\x03"))
+            await hass.async_block_till_done()
+            assert hass.states.get(cover_id).state == "opening"
+            assert hass.states.get(fan_id).state == "on"
+            assert hass.states.get(fan_id).attributes["percentage"] == 63
+
+            fan.value_changed(A5_38_08(
+                command=2, dimming=CentralCommandDimming(0, 0, 1, 0, 0, 0)
+            ).encode_message(b"\x00\x00\x00\x03"))
+            cover.value_changed(RPSMessage(b"\x00\x00\x00\x02", 0x30, b"\x70"))
+            await hass.async_block_till_done()
+            assert hass.states.get(fan_id).state == "off"
+            assert hass.states.get(fan_id).attributes["percentage"] == 0
+            assert hass.states.get(cover_id).state == "open"
+            assert hass.states.get(cover_id).attributes["current_position"] == 100
+
+            with pytest.raises(vol.Invalid):
+                await hass.services.async_call(
+                    "eltako", "invalidate_cover_position", {"entity_id": "invalid"}
+                )
+            await hass.services.async_call(
+                "eltako", "invalidate_cover_position", {"entity_id": cover_id}
+            )
+            await hass.async_block_till_done()
+            assert hass.states.get(cover_id).state == "unknown"
+            assert "current_position" not in hass.states.get(cover_id).attributes
+        finally:
+            await runtime.async_stop()
+
     run(scenario())
 
 

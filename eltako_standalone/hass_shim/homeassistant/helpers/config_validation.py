@@ -40,6 +40,14 @@ def entity_id(value) -> str:
     return value
 
 
+def entity_ids(value) -> list[str]:
+    if isinstance(value, str):
+        value = [item.strip() for item in value.split(",")]
+    if not isinstance(value, (list, tuple)):
+        raise vol.Invalid("entity IDs must be a string or list")
+    return [entity_id(item) for item in value]
+
+
 def boolean(value) -> bool:
     if isinstance(value, bool):
         return value
